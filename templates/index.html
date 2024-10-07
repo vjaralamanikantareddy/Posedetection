@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pose Detection</title>
+</head>
+<body>
+    <h1>Pose Detection</h1>
+    <img src="{{ url_for('video_feed') }}" alt="Video Feed" style="width: 80%; height: auto;">
+    <br>
+    <button id="toggleButton" onclick="toggleDetection()">Start Detection</button>
+
+    <script>
+        let detecting = false;
+
+        function toggleDetection() {
+            detecting = !detecting;
+            const button = document.getElementById('toggleButton');
+            if (detecting) {
+                button.innerText = "Stop Detection";
+                fetch('/start_detection', { method: 'POST' });
+            } else {
+                button.innerText = "Start Detection";
+                fetch('/stop_detection', { method: 'POST' });
+            }
+        }
+    </script>
+</body>
+</html>
