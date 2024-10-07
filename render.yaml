@@ -1,0 +1,7 @@
+services:
+  - type: web
+    name: pose-estimation-app
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app --timeout 120
+    plan: free # or use a paid plan if needed
