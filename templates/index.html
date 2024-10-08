@@ -3,59 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pose Detection</title>
-    <style>
-        video {
-            width: 100%;
-            height: auto;
-        }
-        button {
-            padding: 10px 20px;
-            margin-top: 20px;
-            font-size: 16px;
-        }
-    </style>
+    <title>Live Pose Detection</title>
 </head>
 <body>
-    <h1>Pose Detection</h1>
-
-    <video id="videoFeed" autoplay playsinline></video>
-
-    <button id="startStopButton" onclick="toggleVideo()">Start</button>
-
-    <script>
-        let isStreaming = false;
-        let videoElement = document.getElementById('videoFeed');
-        let buttonElement = document.getElementById('startStopButton');
-        let stream;
-
-        async function startVideo() {
-            try {
-                stream = await fetch('/video_feed');
-                const videoStream = stream.body.getReader();
-                const streamURL = window.URL.createObjectURL(new Blob([videoStream]));
-                videoElement.src = streamURL;
-                isStreaming = true;
-                buttonElement.innerText = "Stop";
-            } catch (error) {
-                console.error('Error starting video:', error);
-            }
-        }
-
-        function stopVideo() {
-            videoElement.src = '';
-            stream.cancel();
-            isStreaming = false;
-            buttonElement.innerText = "Start";
-        }
-
-        function toggleVideo() {
-            if (isStreaming) {
-                stopVideo();
-            } else {
-                startVideo();
-            }
-        }
-    </script>
+    <h1>Live Pose Detection</h1>
+    <img src="{{ url_for('video_feed') }}" alt="Video Feed" style="width: 640px; height: auto;">
 </body>
 </html>
