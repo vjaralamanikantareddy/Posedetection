@@ -10,17 +10,7 @@ app = Flask(__name__)
 mp_pose = mp.solutions.pose
 mp_drawing = mp.solutions.drawing_utils
 
-# Function to calculate the angle between three landmarks
-def calculateAngle(landmark1, landmark2, landmark3):
-    x1, y1 = landmark1.x, landmark1.y
-    x2, y2 = landmark2.x, landmark2.y
-    x3, y3 = landmark3.x, landmark3.y
-    angle = math.degrees(math.atan2(y3 - y2, x3 - x2) - math.atan2(y1 - y2, x1 - x2))
-    if angle < 0:
-        angle += 360
-    return angle
-
-# Function to classify poses
+# Function to classify poses (T-Pose in this case)
 def classifyPose(landmarks):
     left_shoulder = landmarks.pose_landmarks.landmark[mp_pose.PoseLandmark.LEFT_SHOULDER]
     left_wrist = landmarks.pose_landmarks.landmark[mp_pose.PoseLandmark.LEFT_WRIST]
@@ -57,12 +47,19 @@ def detect_pose():
         rgb_frame = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         results = pose_video.process(rgb_frame)
 
+        landmarks = []
         if results.pose_landmarks:
+            for landmark in results.pose_landmarks.landmark:
+                landmarks.append({
+                    'x': landmark.x,
+                    'y': landmark.y,
+                    'z': landmark.z
+                })
             pose_label = classifyPose(results)
         else:
             pose_label = 'No Pose Detected'
 
-    return jsonify({'pose': pose_label})
+    return jsonify({'pose': pose_label, 'landmarks': landmarks})
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
