@@ -7,61 +7,6 @@
 </head>
 <body>
     <h1>Live Pose Detection</h1>
-    <video id="video" width="640" height="480" autoplay></video>
-    <canvas id="canvas" width="640" height="480"></canvas>
-    <p id="pose_result">Detecting...</p>
-
-    <script>
-        const video = document.getElementById('video');
-        const canvas = document.getElementById('canvas');
-        const context = canvas.getContext('2d');
-        const result = document.getElementById('pose_result');
-
-        // Access the camera
-        navigator.mediaDevices.getUserMedia({ video: true })
-            .then(stream => {
-                video.srcObject = stream;
-            })
-            .catch(err => console.error("Error accessing the camera: ", err));
-
-        function sendFrameToServer() {
-            context.drawImage(video, 0, 0, canvas.width, canvas.height);
-            const frame = canvas.toDataURL('image/jpeg');
-
-            fetch('/detect_pose', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ image: frame }),
-            })
-            .then(response => response.json())
-            .then(data => {
-                // Show landmarks and pose classification result
-                result.textContent = data.pose;
-                if (data.landmarks) {
-                    drawLandmarks(data.landmarks);
-                }
-            })
-            .catch(err => console.error('Error:', err));
-        }
-
-        function drawLandmarks(landmarks) {
-            context.clearRect(0, 0, canvas.width, canvas.height);  // Clear the canvas
-
-            // Draw each landmark
-            landmarks.forEach(landmark => {
-                const x = landmark.x * canvas.width;
-                const y = landmark.y * canvas.height;
-                context.beginPath();
-                context.arc(x, y, 5, 0, 2 * Math.PI);
-                context.fillStyle = 'red';
-                context.fill();
-            });
-        }
-
-        // Send frames every 100ms
-        setInterval(sendFrameToServer, 100);
-    </script>
+    <img src="{{ url_for('video_feed') }}" width="640" height="480">
 </body>
 </html>
