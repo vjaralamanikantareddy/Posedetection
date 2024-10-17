@@ -3,30 +3,27 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pose Detection</title>
+    <title>Live Pose Detection</title>
 </head>
 <body>
-    <h1>Pose Detection</h1>
+    <h1>Live Pose Detection</h1>
     <video id="video" width="640" height="480" autoplay></video>
-    <canvas id="canvas" width="640" height="480" style="display: none;"></canvas>
-    <p id="result">Detecting...</p>
+    <canvas id="canvas" width="640" height="480"></canvas>
+    <p id="pose_result">Detecting...</p>
 
     <script>
         const video = document.getElementById('video');
         const canvas = document.getElementById('canvas');
         const context = canvas.getContext('2d');
-        const result = document.getElementById('result');
+        const result = document.getElementById('pose_result');
 
-        // Get access to the camera
+        // Access the camera
         navigator.mediaDevices.getUserMedia({ video: true })
-            .then(function (stream) {
+            .then(stream => {
                 video.srcObject = stream;
             })
-            .catch(function (err) {
-                console.log("An error occurred: " + err);
-            });
+            .catch(err => console.error("Error accessing the camera: ", err));
 
-        // Send frames to Flask backend
         function sendFrameToServer() {
             context.drawImage(video, 0, 0, canvas.width, canvas.height);
             const frame = canvas.toDataURL('image/jpeg');
@@ -34,18 +31,36 @@
             fetch('/detect_pose', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ image: frame })
+                body: JSON.stringify({ image: frame }),
             })
             .then(response => response.json())
             .then(data => {
+                // Show landmarks and pose classification result
                 result.textContent = data.pose;
+                if (data.landmarks) {
+                    drawLandmarks(data.landmarks);
+                }
             })
             .catch(err => console.error('Error:', err));
         }
 
-        // Send a frame every 100ms
+        function drawLandmarks(landmarks) {
+            context.clearRect(0, 0, canvas.width, canvas.height);  // Clear the canvas
+
+            // Draw each landmark
+            landmarks.forEach(landmark => {
+                const x = landmark.x * canvas.width;
+                const y = landmark.y * canvas.height;
+                context.beginPath();
+                context.arc(x, y, 5, 0, 2 * Math.PI);
+                context.fillStyle = 'red';
+                context.fill();
+            });
+        }
+
+        // Send frames every 100ms
         setInterval(sendFrameToServer, 100);
     </script>
 </body>
