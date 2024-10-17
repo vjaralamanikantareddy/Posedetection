@@ -3,10 +3,50 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Live Pose Detection</title>
+    <title>Pose Detection</title>
 </head>
 <body>
-    <h1>Live Pose Detection</h1>
-    <img src="{{ url_for('video_feed') }}" alt="Video Feed" style="width: 640px; height: auto;">
+    <h1>Pose Detection</h1>
+    <video id="video" width="640" height="480" autoplay></video>
+    <canvas id="canvas" width="640" height="480" style="display: none;"></canvas>
+    <p id="result">Detecting...</p>
+
+    <script>
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+        const context = canvas.getContext('2d');
+        const result = document.getElementById('result');
+
+        // Get access to the camera
+        navigator.mediaDevices.getUserMedia({ video: true })
+            .then(function (stream) {
+                video.srcObject = stream;
+            })
+            .catch(function (err) {
+                console.log("An error occurred: " + err);
+            });
+
+        // Send frames to Flask backend
+        function sendFrameToServer() {
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+            const frame = canvas.toDataURL('image/jpeg');
+
+            fetch('/detect_pose', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ image: frame })
+            })
+            .then(response => response.json())
+            .then(data => {
+                result.textContent = data.pose;
+            })
+            .catch(err => console.error('Error:', err));
+        }
+
+        // Send a frame every 100ms
+        setInterval(sendFrameToServer, 100);
+    </script>
 </body>
 </html>
