@@ -1,15 +1,16 @@
 import cv2
 import math
-import pickle
+import base64
+import numpy as np
 import mediapipe as mp
-from flask import Flask, render_template, Response
+from flask import Flask, render_template, request, jsonify
 
 app = Flask(__name__)
 
 mp_pose = mp.solutions.pose
 mp_drawing = mp.solutions.drawing_utils
 
-# Function to calculate angle between three landmarks
+# Function to calculate the angle between three landmarks
 def calculateAngle(landmark1, landmark2, landmark3):
     x1, y1 = landmark1.x, landmark1.y
     x2, y2 = landmark2.x, landmark2.y
@@ -35,42 +36,33 @@ def classifyPose(landmarks):
 
     return 'Unknown Pose'
 
-# Initialize the video capture
-video_capture = cv2.VideoCapture(0)  # Use 0 for the first webcam
+# Convert base64 image to OpenCV format
+def base64_to_image(base64_str):
+    img_data = base64.b64decode(base64_str.split(',')[1])
+    np_arr = np.frombuffer(img_data, np.uint8)
+    return cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
 
 @app.route('/')
 def index():
     return render_template('index.html')
 
-def gen_frames():
+@app.route('/detect_pose', methods=['POST'])
+def detect_pose():
+    data = request.get_json()
+    image_data = data['image']
+    image = base64_to_image(image_data)
+
+    # Pose estimation
     with mp_pose.Pose(static_image_mode=False, min_detection_confidence=0.5, model_complexity=1) as pose_video:
-        while True:
-            success, frame = video_capture.read()
-            if not success:
-                break
-            
-            # Resize frame
-            frame_height, frame_width, _ = frame.shape
-            frame = cv2.resize(frame, (int(frame_width * (640 / frame_height)), 640))
+        rgb_frame = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        results = pose_video.process(rgb_frame)
 
-            rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            results = pose_video.process(rgb_frame)
+        if results.pose_landmarks:
+            pose_label = classifyPose(results)
+        else:
+            pose_label = 'No Pose Detected'
 
-            if results.pose_landmarks:
-                pose_label = classifyPose(results)
-                mp_drawing.draw_landmarks(frame, results.pose_landmarks, mp_pose.POSE_CONNECTIONS)
-                cv2.putText(frame, pose_label, (10, 30), cv2.FONT_HERSHEY_PLAIN, 2, (0, 255, 0), 2)
-
-            # Convert the frame to JPEG format
-            ret, buffer = cv2.imencode('.jpg', frame)
-            frame = buffer.tobytes()
-
-            yield (b'--frame\r\n'
-                   b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
-
-@app.route('/video_feed')
-def video_feed():
-    return Response(gen_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
+    return jsonify({'pose': pose_label})
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=5000)  # Use host='0.0.0.0' for accessibility
+    app.run(debug=True, host='0.0.0.0', port=5000)
